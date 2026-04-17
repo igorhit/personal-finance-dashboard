@@ -20,7 +20,7 @@ Aplicação web de análise financeira pessoal construída com FastAPI, PostgreS
 ## Tecnologias e por que cada uma
 
 | Tecnologia | Por quê |
-|---|---|
+| --- | --- |
 | **FastAPI** | Framework Python moderno com validação automática via Pydantic, documentação OpenAPI gerada automaticamente e serving de arquivos estáticos nativo |
 | **PostgreSQL** | Banco relacional robusto; permite queries com CTEs e window functions que seriam impossíveis em soluções NoSQL simples |
 | **psycopg2** | Acesso direto ao banco sem ORM — as queries de relatório usam CTEs e funções de janela que seriam obscurecidas por um ORM |
@@ -40,7 +40,7 @@ cd personal-finance-dashboard
 docker-compose up
 ```
 
-Abra **http://localhost:8000** no navegador.
+Abra <http://localhost:8000> no navegador.
 
 O dashboard já estará populado com 12 meses de dados fictícios gerados automaticamente no primeiro boot.
 
@@ -48,7 +48,7 @@ O dashboard já estará populado com 12 meses de dados fictícios gerados automa
 
 ## Estrutura do projeto
 
-```
+```text
 personal-finance-dashboard/
 ├── docker-compose.yml      # Serviços: db (Postgres) + api (FastAPI)
 ├── Dockerfile
@@ -79,12 +79,12 @@ personal-finance-dashboard/
 
 ## API
 
-A documentação interativa está disponível em **http://localhost:8000/docs** (Swagger UI gerado pelo FastAPI).
+A documentação interativa está disponível em <http://localhost:8000/docs> (Swagger UI gerado pelo FastAPI).
 
 Endpoints principais:
 
 | Método | Path | Descrição |
-|---|---|---|
+| --- | --- | --- |
 | `POST` | `/api/transactions/` | Cria transação |
 | `GET` | `/api/transactions/` | Lista transações (filtros opcionais) |
 | `DELETE` | `/api/transactions/{id}` | Remove transação |
