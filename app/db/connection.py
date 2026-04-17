@@ -1,8 +1,11 @@
 import os
+from pathlib import Path
 import psycopg2
 import psycopg2.extras
 from contextlib import contextmanager
 from typing import Generator
+
+_SQL_DIR = Path(__file__).parent / "sql"
 
 
 def get_database_url() -> str:
@@ -26,20 +29,7 @@ def get_conn() -> Generator[psycopg2.extensions.connection, None, None]:
 
 
 def init_schema() -> None:
+    schema = (_SQL_DIR / "schema.sql").read_text(encoding="utf-8")
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS transactions (
-                    id          SERIAL PRIMARY KEY,
-                    description TEXT        NOT NULL,
-                    amount      NUMERIC(12,2) NOT NULL CHECK (amount > 0),
-                    category    TEXT        NOT NULL,
-                    date        DATE        NOT NULL,
-                    type        TEXT        NOT NULL CHECK (type IN ('income', 'expense')),
-                    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_transactions_date     ON transactions (date);
-                CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions (category);
-                CREATE INDEX IF NOT EXISTS idx_transactions_type     ON transactions (type);
-            """)
+            cur.execute(schema)

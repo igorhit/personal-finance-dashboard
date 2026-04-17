@@ -1,9 +1,16 @@
+from pathlib import Path
 from typing import Any
-import psycopg2.extras
+
 from app.db.connection import get_conn
 
+_SQL_DIR = Path(__file__).parent / "sql"
 
-# ── Transactions ─────────────────────────────────────────────────────────────
+
+def _sql(name: str) -> str:
+    return (_SQL_DIR / name).read_text(encoding="utf-8")
+
+
+# ── Transactions ──────────────────────────────────────────────────────────────
 
 def insert_transaction(
     description: str,
@@ -14,14 +21,7 @@ def insert_transaction(
 ) -> dict[str, Any]:
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO transactions (description, amount, category, date, type)
-                VALUES (%s, %s, %s, %s, %s)
-                RETURNING *
-                """,
-                (description, amount, category, date, type_),
-            )
+            cur.execute(_sql("insert_transaction.sql"), (description, amount, category, date, type_))
             return dict(cur.fetchone())
 
 
@@ -57,53 +57,23 @@ def list_transactions(
 def delete_transaction(transaction_id: int) -> bool:
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM transactions WHERE id = %s RETURNING id",
-                (transaction_id,),
-            )
+            cur.execute(_sql("delete_transaction.sql"), (transaction_id,))
             return cur.fetchone() is not None
 
 
 def list_categories() -> list[str]:
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT DISTINCT category FROM transactions ORDER BY category")
+            cur.execute(_sql("list_categories.sql"))
             return [row["category"] for row in cur.fetchall()]
 
 
 # ── Reports ───────────────────────────────────────────────────────────────────
 
 def get_summary(year: int, month: int) -> dict[str, Any]:
-    """
-    Returns current balance (all time) plus income/expense totals for the
-    requested month.  Uses a single CTE pass to avoid multiple round-trips.
-    """
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                WITH all_time AS (
-                    SELECT
-                        COALESCE(SUM(CASE WHEN type = 'income'  THEN amount ELSE 0 END), 0) AS total_income_all,
-                        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS total_expense_all
-                    FROM transactions
-                ),
-                this_month AS (
-                    SELECT
-                        COALESCE(SUM(CASE WHEN type = 'income'  THEN amount ELSE 0 END), 0) AS month_income,
-                        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS month_expense
-                    FROM transactions
-                    WHERE EXTRACT(YEAR  FROM date) = %s
-                      AND EXTRACT(MONTH FROM date) = %s
-                )
-                SELECT
-                    (a.total_income_all - a.total_expense_all) AS balance,
-                    m.month_income,
-                    m.month_expense
-                FROM all_time a, this_month m
-                """,
-                (year, month),
-            )
+            cur.execute(_sql("get_summary.sql"), (year, month))
             row = cur.fetchone()
             return {
                 "balance":       float(row["balance"]),
@@ -113,36 +83,9 @@ def get_summary(year: int, month: int) -> dict[str, Any]:
 
 
 def get_expenses_by_category(year: int, month: int) -> list[dict[str, Any]]:
-    """
-    Expense breakdown by category for a given month, sorted descending,
-    with percentage share computed via window function.
-    """
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                WITH monthly_expenses AS (
-                    SELECT
-                        category,
-                        SUM(amount) AS total
-                    FROM transactions
-                    WHERE type = 'expense'
-                      AND EXTRACT(YEAR  FROM date) = %s
-                      AND EXTRACT(MONTH FROM date) = %s
-                    GROUP BY category
-                ),
-                totals AS (
-                    SELECT SUM(total) AS grand_total FROM monthly_expenses
-                )
-                SELECT
-                    me.category,
-                    me.total,
-                    ROUND(me.total * 100.0 / NULLIF(t.grand_total, 0), 1) AS pct
-                FROM monthly_expenses me, totals t
-                ORDER BY me.total DESC
-                """,
-                (year, month),
-            )
+            cur.execute(_sql("get_expenses_by_category.sql"), (year, month))
             return [
                 {"category": row["category"], "total": float(row["total"]), "pct": float(row["pct"] or 0)}
                 for row in cur.fetchall()
@@ -150,43 +93,10 @@ def get_expenses_by_category(year: int, month: int) -> list[dict[str, Any]]:
 
 
 def get_monthly_balance_evolution(months: int = 12) -> list[dict[str, Any]]:
-    """
-    Running balance month by month for the last N months.
-    Uses a CTE with a cumulative window sum so the SQL does all the math.
-    """
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                WITH monthly_net AS (
-                    SELECT
-                        DATE_TRUNC('month', date)::DATE AS month,
-                        SUM(CASE WHEN type = 'income'  THEN  amount ELSE 0 END) AS income,
-                        SUM(CASE WHEN type = 'expense' THEN  amount ELSE 0 END) AS expense,
-                        SUM(CASE WHEN type = 'income'  THEN  amount
-                                 WHEN type = 'expense' THEN -amount ELSE 0 END) AS net
-                    FROM transactions
-                    GROUP BY DATE_TRUNC('month', date)
-                    ORDER BY month
-                ),
-                running AS (
-                    SELECT
-                        month,
-                        income,
-                        expense,
-                        net,
-                        SUM(net) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS balance
-                    FROM monthly_net
-                )
-                SELECT *
-                FROM running
-                ORDER BY month DESC
-                LIMIT %s
-                """,
-                (months,),
-            )
+            cur.execute(_sql("get_monthly_balance_evolution.sql"), (months,))
             rows = cur.fetchall()
-            # Return chronological order for charting
             return [
                 {
                     "month":   row["month"].strftime("%Y-%m"),
