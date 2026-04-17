@@ -61,8 +61,14 @@ personal-finance-dashboard/
     │   └── reports.py      # Endpoints de relatório (dashboard)
     ├── db/
     │   ├── connection.py   # Pool de conexão + criação de schema
-    │   ├── queries.py      # Todas as queries SQL (CTEs, window functions)
-    │   └── seed.py         # Dados fictícios para o primeiro boot
+    │   ├── queries.py      # Carrega e executa os arquivos .sql
+    │   ├── seed.py         # Dados fictícios para o primeiro boot
+    │   └── sql/            # Queries SQL puras (CTEs, window functions)
+    │       ├── schema.sql
+    │       ├── get_summary.sql
+    │       ├── get_expenses_by_category.sql
+    │       ├── get_monthly_balance_evolution.sql
+    │       └── ...
     └── static/
         ├── index.html
         ├── style.css
@@ -92,7 +98,7 @@ Endpoints principais:
 
 ### SQL explícito em vez de ORM
 
-As queries de relatório usam CTEs e window functions (`SUM(...) OVER`). Um ORM como SQLAlchemy geraria múltiplos round-trips ou exigiria SQL raw de qualquer forma. Escrever SQL diretamente é mais legível, mais rápido e mais fácil de auditar para quem vai ler o código.
+As queries de relatório usam CTEs e window functions (`SUM(...) OVER`). Um ORM como SQLAlchemy geraria múltiplos round-trips ou exigiria SQL raw de qualquer forma. Escrever SQL diretamente é mais legível, mais rápido e mais fácil de auditar — e por estarem isoladas em `app/db/sql/`, cada query pode ser lida como um arquivo `.sql` puro, sem precisar navegar por código Python.
 
 ### Seed automático
 
