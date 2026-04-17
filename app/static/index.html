@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Finance Dashboard</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>💰 Personal Finance Dashboard</h1>
+</header>
+
+<main>
+
+  <!-- ── KPI cards ───────────────────────────────────────────────── -->
+  <section class="kpi-row">
+    <div class="card kpi" id="card-balance">
+      <span class="kpi-label">Saldo atual</span>
+      <span class="kpi-value" id="kpi-balance">—</span>
+    </div>
+    <div class="card kpi income">
+      <span class="kpi-label">Receitas do mês</span>
+      <span class="kpi-value" id="kpi-income">—</span>
+    </div>
+    <div class="card kpi expense">
+      <span class="kpi-label">Despesas do mês</span>
+      <span class="kpi-value" id="kpi-expense">—</span>
+    </div>
+  </section>
+
+  <!-- ── Charts ─────────────────────────────────────────────────── -->
+  <section class="charts-row">
+    <div class="card chart-card">
+      <h2>Gastos por categoria <span id="chart-month-label"></span></h2>
+      <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <h2>Evolução do saldo (12 meses)</h2>
+      <div class="chart-wrap"><canvas id="chart-line"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ── Add transaction ────────────────────────────────────────── -->
+  <section class="card">
+    <h2>Nova transação</h2>
+    <form id="form-transaction">
+      <div class="form-grid">
+        <label>
+          Descrição
+          <input type="text" id="f-desc" placeholder="Ex: Supermercado" required />
+        </label>
+        <label>
+          Valor (R$)
+          <input type="number" id="f-amount" min="0.01" step="0.01" placeholder="0,00" required />
+        </label>
+        <label>
+          Categoria
+          <input type="text" id="f-category" placeholder="Ex: Alimentação" list="category-list" required />
+          <datalist id="category-list"></datalist>
+        </label>
+        <label>
+          Data
+          <input type="date" id="f-date" required />
+        </label>
+        <label>
+          Tipo
+          <select id="f-type">
+            <option value="expense">Despesa</option>
+            <option value="income">Receita</option>
+          </select>
+        </label>
+      </div>
+      <button type="submit" class="btn-primary">Adicionar</button>
+      <span id="form-msg" class="form-msg"></span>
+    </form>
+  </section>
+
+  <!-- ── Transaction list ───────────────────────────────────────── -->
+  <section class="card">
+    <h2>Transações</h2>
+    <div class="filters">
+      <label>De <input type="date" id="filter-from" /></label>
+      <label>Até <input type="date" id="filter-to" /></label>
+      <label>
+        Categoria
+        <select id="filter-category">
+          <option value="">Todas</option>
+        </select>
+      </label>
+      <button class="btn-secondary" id="btn-filter">Filtrar</button>
+      <button class="btn-secondary" id="btn-clear">Limpar</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="table-transactions">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Tipo</th>
+            <th class="right">Valor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <p id="empty-msg" class="empty-msg hidden">Nenhuma transação encontrada.</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
